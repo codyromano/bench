@@ -9,19 +9,8 @@
 <body>
     <div class="container">
         <div class="columns-wrapper">
-            <div class="left-column">
-                <div class="section">
-                    <div class="section-title">Gains</div>
-                </div>
-                <div class="section perfection">
-                    <div class="section-title">Perfection</div>
-                </div>
-                <div class="section">
-                    <div class="section-title">Fatigue</div>
-                </div>
-                <div class="section">
-                    <div class="section-title">Gains</div>
-                </div>
+            <div class="left-column" id="leftColumn">
+                <!-- Sections will be dynamically generated -->
                 <div class="dumbbell">
                     <div class="dumbbell-weight"></div>
                     <div class="dumbbell-bar"></div>
@@ -77,6 +66,7 @@
         const effectsList = document.getElementById('effectsList');
         const debugMenu = document.getElementById('debugMenu');
         const expireEffectsButton = document.getElementById('expireEffectsButton');
+        const leftColumn = document.getElementById('leftColumn');
         
         let isLifting = false;
         let isLowering = false;
@@ -95,18 +85,79 @@
         let perfectionTimeRemaining = 0;
         let perfectionTimerInterval = null;
         let statusEffectDefs = {};
+        let levelsConfig = null;
+        let currentLevel = null;
+        let currentLevelNumber = 1;
         
         // Debug menu state
         const debugSequence = ['ArrowUp', 'ArrowDown', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
         let debugInput = [];
 
-        // Load status effect definitions
-        fetch('statusEffects.json')
-            .then(response => response.json())
-            .then(data => {
-                statusEffectDefs = data;
-            })
-            .catch(error => console.error('Error loading status effects:', error));
+        // Load configurations
+        Promise.all([
+            fetch('statusEffects.json').then(r => r.json()),
+            fetch('levels.json').then(r => r.json())
+        ]).then(([effectsData, levelsData]) => {
+            statusEffectDefs = effectsData;
+            levelsConfig = levelsData;
+            loadLevel(1);
+        }).catch(error => console.error('Error loading configurations:', error));
+
+        function loadLevel(levelNum) {
+            const levelData = levelsConfig.levels.find(l => l.levelNumber === levelNum);
+            if (!levelData) {
+                console.error('Level not found:', levelNum);
+                return;
+            }
+            
+            currentLevel = levelData;
+            currentLevelNumber = levelNum;
+            weight = levelData.weight;
+            weightValue.textContent = weight;
+            
+            // Render sections
+            renderSections(levelData.sections);
+        }
+
+        function renderSections(sections) {
+            // Clear existing sections (but keep dumbbell)
+            const dumbbellElement = leftColumn.querySelector('.dumbbell');
+            leftColumn.innerHTML = '';
+            
+            // Create sections
+            sections.forEach(section => {
+                const sectionDiv = document.createElement('div');
+                sectionDiv.className = 'section';
+                
+                if (section.type === 'perfection') {
+                    sectionDiv.classList.add('perfection');
+                }
+                
+                sectionDiv.setAttribute('data-type', section.type);
+                
+                // Apply styling
+                if (section.flex) {
+                    sectionDiv.style.flex = section.flex;
+                } else if (section.height) {
+                    sectionDiv.style.flex = '0 0 ' + section.height + 'px';
+                }
+                
+                if (section.backgroundColor && section.type === 'perfection') {
+                    sectionDiv.style.background = section.backgroundColor;
+                }
+                
+                // Add title
+                const titleDiv = document.createElement('div');
+                titleDiv.className = 'section-title';
+                titleDiv.textContent = section.label;
+                sectionDiv.appendChild(titleDiv);
+                
+                leftColumn.appendChild(sectionDiv);
+            });
+            
+            // Re-add dumbbell at the end
+            leftColumn.appendChild(dumbbellElement);
+        }
 
         function updateEffectsDisplay() {
             if (fatigueStacks === 0 && perfectionStacks === 0) {
@@ -223,29 +274,23 @@
 
         // Calculate which section the dumbbell is in
         function getCurrentSection() {
-            const leftColumn = document.querySelector('.left-column');
             const columnHeight = leftColumn.clientHeight;
-            const perfectionSection = document.querySelector('.section.perfection');
-            const perfectionHeight = perfectionSection ? perfectionSection.clientHeight : 40;
-            
-            // Calculate position from top (inverse of bottom)
             const positionFromTop = columnHeight - currentPosition;
             
-            // Calculate section boundaries
-            const sections = document.querySelectorAll('.left-column .section');
+            const sections = leftColumn.querySelectorAll('.section');
             let cumulativeHeight = 0;
             
             for (let i = 0; i < sections.length; i++) {
                 const sectionHeight = sections[i].clientHeight;
                 if (positionFromTop >= cumulativeHeight && positionFromTop < cumulativeHeight + sectionHeight) {
-                    if (sections[i].classList.contains('perfection')) {
+                    const sectionType = sections[i].getAttribute('data-type');
+                    if (sectionType === 'perfection') {
                         return 'perfection';
-                    } else if (i === 0) {
-                        return 'gains-top';
-                    } else if (i === 2) {
+                    } else if (sectionType === 'fatigue') {
                         return 'fatigue';
-                    } else if (i === 3) {
-                        return 'gains-bottom';
+                    } else if (sectionType === 'gains') {
+                        // Differentiate between first and last gains section
+                        return i === 0 ? 'gains-top' : 'gains-bottom';
                     }
                 }
                 cumulativeHeight += sectionHeight;
@@ -389,7 +434,7 @@
             if (isInGainsSection(liftStartSection) && 
                 isInGainsSection(releaseSection) && 
                 liftStartSection !== releaseSection) {
-                let xpGain = 5;
+                let xpGain = currentLevel ? currentLevel.baseXP : 5;
                 if (perfectionStacks > 0) {
                     xpGain = Math.floor(xpGain * (1 + (perfectionStacks * 0.25))); // 25% bonus per stack
                 }

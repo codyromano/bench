@@ -1,0 +1,226 @@
+{
+  "levels": [
+    {
+      "levelNumber": 1,
+      "weight": 50,
+      "baseXP": 5,
+      "sections": [
+        {
+          "type": "gains",
+          "label": "Gains",
+          "flex": 1,
+          "backgroundColor": "#1c1c1e"
+        },
+        {
+          "type": "perfection",
+          "label": "Perfection",
+          "height": 40,
+          "backgroundColor": "linear-gradient(to bottom, #ffd700, #b8860b)"
+        },
+        {
+          "type": "fatigue",
+          "label": "Fatigue",
+          "flex": 1,
+          "backgroundColor": "#1c1c1e"
+        },
+        {
+          "type": "gains",
+          "label": "Gains",
+          "flex": 1,
+          "backgroundColor": "#1c1c1e"
+        }
+      ],
+      "movement": {
+        "lift": {
+          "segments": [
+            {
+              "from": 75,
+              "to": 400,
+              "duration": 800,
+              "easing": "ease-out"
+            },
+            {
+              "from": 400,
+              "to": "max",
+              "duration": 700,
+              "easing": "ease-in-out"
+            }
+          ]
+        },
+        "lower": {
+          "segments": [
+            {
+              "from": "current",
+              "to": 75,
+              "duration": 1125,
+              "easing": "ease-in"
+            }
+          ]
+        },
+        "autoDropDelay": 1000
+      }
+    },
+    {
+      "levelNumber": 2,
+      "weight": 75,
+      "baseXP": 7,
+      "sections": [
+        {
+          "type": "gains",
+          "label": "Gains",
+          "flex": 1,
+          "backgroundColor": "#1c1c1e"
+        },
+        {
+          "type": "perfection",
+          "label": "Perfection",
+          "height": 50,
+          "backgroundColor": "linear-gradient(to bottom, #ffd700, #b8860b)"
+        },
+        {
+          "type": "fatigue",
+          "label": "Fatigue",
+          "flex": 0.5,
+          "backgroundColor": "#1c1c1e"
+        },
+        {
+          "type": "perfection",
+          "label": "Perfection",
+          "height": 40,
+          "backgroundColor": "linear-gradient(to bottom, #ffd700, #b8860b)"
+        },
+        {
+          "type": "gains",
+          "label": "Gains",
+          "flex": 1.5,
+          "backgroundColor": "#1c1c1e"
+        }
+      ],
+      "movement": {
+        "lift": {
+          "segments": [
+            {
+              "from": 75,
+              "to": 250,
+              "duration": 600,
+              "easing": "ease-out"
+            },
+            {
+              "from": 250,
+              "to": 450,
+              "duration": 400,
+              "easing": "linear"
+            },
+            {
+              "from": 450,
+              "to": "max",
+              "duration": 300,
+              "easing": "ease-in-out"
+            }
+          ]
+        },
+        "lower": {
+          "segments": [
+            {
+              "from": "current",
+              "to": 75,
+              "duration": 1000,
+              "easing": "ease-in"
+            }
+          ]
+        },
+        "autoDropDelay": 800
+      }
+    },
+    {
+      "levelNumber": 3,
+      "weight": 100,
+      "baseXP": 10,
+      "sections": [
+        {
+          "type": "gains",
+          "label": "Gains",
+          "flex": 1,
+          "backgroundColor": "#1c1c1e"
+        },
+        {
+          "type": "fatigue",
+          "label": "Fatigue",
+          "flex": 0.3,
+          "backgroundColor": "#1c1c1e"
+        },
+        {
+          "type": "perfection",
+          "label": "Perfection",
+          "height": 35,
+          "backgroundColor": "linear-gradient(to bottom, #ffd700, #b8860b)"
+        },
+        {
+          "type": "fatigue",
+          "label": "Fatigue",
+          "flex": 0.5,
+          "backgroundColor": "#1c1c1e"
+        },
+        {
+          "type": "perfection",
+          "label": "Perfection",
+          "height": 35,
+          "backgroundColor": "linear-gradient(to bottom, #ffd700, #b8860b)"
+        },
+        {
+          "type": "gains",
+          "label": "Gains",
+          "flex": 1.2,
+          "backgroundColor": "#1c1c1e"
+        }
+      ],
+      "movement": {
+        "lift": {
+          "segments": [
+            {
+              "from": 75,
+              "to": 200,
+              "duration": 500,
+              "easing": "ease-out"
+            },
+            {
+              "from": 200,
+              "to": 300,
+              "duration": 300,
+              "easing": "linear"
+            },
+            {
+              "from": 300,
+              "to": 450,
+              "duration": 200,
+              "easing": "ease-in"
+            },
+            {
+              "from": 450,
+              "to": "max",
+              "duration": 200,
+              "easing": "ease-out"
+            }
+          ]
+        },
+        "lower": {
+          "segments": [
+            {
+              "from": "current",
+              "to": 200,
+              "duration": 500,
+              "easing": "ease-in"
+            },
+            {
+              "from": 200,
+              "to": 75,
+              "duration": 400,
+              "easing": "ease-out"
+            }
+          ]
+        },
+        "autoDropDelay": 700
+      }
+    }
+  ]
+}
