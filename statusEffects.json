@@ -1,0 +1,20 @@
+{
+  "fatigue": {
+    "name": "Fatigue",
+    "duration": 30,
+    "maxDuration": 120,
+    "maxStacks": 10,
+    "stackable": true,
+    "description": "Reduces maximum barbell lifting height by {percentage}%",
+    "color": "#ff9f0a"
+  },
+  "perfection": {
+    "name": "Perfection",
+    "duration": 20,
+    "maxDuration": 60,
+    "maxStacks": 10,
+    "stackable": false,
+    "description": "Increases XP gained by 25%",
+    "color": "#ffd700"
+  }
+}

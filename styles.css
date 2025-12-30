@@ -37,6 +37,17 @@ body {
     border-bottom: 1px solid #2c2c2e;
 }
 
+.section.perfection {
+    flex: 0 0 40px;
+    background: linear-gradient(to bottom, #ffd700, #b8860b);
+    border-bottom: 1px solid #9b7506;
+}
+
+.section.perfection .section-title {
+    color: #1c1c1e;
+    font-weight: 700;
+}
+
 .section:last-child {
     border-bottom: none;
 }
@@ -93,6 +104,7 @@ body {
     display: flex;
     flex-direction: column;
     padding: 40px;
+    min-height: 0;
 }
 
 .stats-section {
@@ -103,6 +115,10 @@ body {
 
 .status-effects-section {
     margin-bottom: 0;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
 }
 
 .status-effects-title {
@@ -113,25 +129,38 @@ body {
 }
 
 .effects-list {
-    max-height: 100px;
+    flex: 1;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 6px;
+    padding-right: 4px;
+    background: linear-gradient(#000000 30%, rgba(0,0,0,0)),
+                linear-gradient(rgba(0,0,0,0), #000000 70%) 0 100%,
+                radial-gradient(farthest-side at 50% 0, rgba(255,255,255,0.1), rgba(0,0,0,0)),
+                radial-gradient(farthest-side at 50% 100%, rgba(255,255,255,0.1), rgba(0,0,0,0)) 0 100%;
+    background-repeat: no-repeat;
+    background-size: 100% 40px, 100% 40px, 100% 14px, 100% 14px;
+    background-attachment: local, local, scroll, scroll;
 }
 
 .effects-list::-webkit-scrollbar {
-    width: 6px;
+    width: 8px;
 }
 
 .effects-list::-webkit-scrollbar-track {
     background: #1c1c1e;
-    border-radius: 3px;
+    border-radius: 4px;
+    margin: 4px 0;
 }
 
 .effects-list::-webkit-scrollbar-thumb {
-    background: #3a3a3c;
-    border-radius: 3px;
+    background: #48484a;
+    border-radius: 4px;
+}
+
+.effects-list::-webkit-scrollbar-thumb:hover {
+    background: #5a5a5e;
 }
 
 .effect-item {

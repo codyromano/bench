@@ -13,6 +13,9 @@
                 <div class="section">
                     <div class="section-title">Gains</div>
                 </div>
+                <div class="section perfection">
+                    <div class="section-title">Perfection</div>
+                </div>
                 <div class="section">
                     <div class="section-title">Fatigue</div>
                 </div>
@@ -88,13 +91,25 @@
         let fatigueTimeRemaining = 0;
         let fatigueTimerInterval = null;
         let autoDropTimer = null;
+        let perfectionStacks = 0;
+        let perfectionTimeRemaining = 0;
+        let perfectionTimerInterval = null;
+        let statusEffectDefs = {};
         
         // Debug menu state
         const debugSequence = ['ArrowUp', 'ArrowDown', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
         let debugInput = [];
 
-        function updateFatigueDisplay() {
-            if (fatigueStacks === 0) {
+        // Load status effect definitions
+        fetch('statusEffects.json')
+            .then(response => response.json())
+            .then(data => {
+                statusEffectDefs = data;
+            })
+            .catch(error => console.error('Error loading status effects:', error));
+
+        function updateEffectsDisplay() {
+            if (fatigueStacks === 0 && perfectionStacks === 0) {
                 effectsList.innerHTML = `
                     <div class="effect-description" style="padding: 12px 0;">
                         You currently have no conditions that affect your lifting abilities
@@ -103,32 +118,56 @@
                 return;
             }
 
-            const stackText = fatigueStacks > 1 ? ` x${fatigueStacks}` : '';
-            const percentage = Math.min(fatigueStacks * 10, 100);
-            
-            effectsList.innerHTML = `
-                <div class="effect-item">
-                    <div class="effect-header">
-                        <div class="effect-name">Fatigue${stackText}</div>
-                        <div class="effect-timer" id="fatigueTimer">${fatigueTimeRemaining}s</div>
+            let effectsHTML = '';
+
+            if (perfectionStacks > 0 && statusEffectDefs.perfection) {
+                const def = statusEffectDefs.perfection;
+                const stackText = perfectionStacks > 1 ? ` x${perfectionStacks}` : '';
+                const percentage = perfectionStacks * 25;
+                const description = def.description.replace('25%', `${percentage}%`);
+                effectsHTML += `
+                    <div class="effect-item" style="border-left-color: ${def.color};">
+                        <div class="effect-header">
+                            <div class="effect-name">${def.name}${stackText}</div>
+                            <div class="effect-timer" id="perfectionTimer" style="color: ${def.color};">${perfectionTimeRemaining}s</div>
+                        </div>
+                        <div class="effect-description">${description}</div>
                     </div>
-                    <div class="effect-description">Reduces maximum barbell lifting height by ${percentage}%</div>
-                </div>
-            `;
+                `;
+            }
+
+            if (fatigueStacks > 0 && statusEffectDefs.fatigue) {
+                const def = statusEffectDefs.fatigue;
+                const stackText = fatigueStacks > 1 ? ` x${fatigueStacks}` : '';
+                const percentage = Math.min(fatigueStacks * 10, 100);
+                const description = def.description.replace('{percentage}', percentage);
+                effectsHTML += `
+                    <div class="effect-item" style="border-left-color: ${def.color};">
+                        <div class="effect-header">
+                            <div class="effect-name">${def.name}${stackText}</div>
+                            <div class="effect-timer" id="fatigueTimer" style="color: ${def.color};">${fatigueTimeRemaining}s</div>
+                        </div>
+                        <div class="effect-description">${description}</div>
+                    </div>
+                `;
+            }
+            
+            effectsList.innerHTML = effectsHTML;
         }
 
         function addFatigueStack() {
-            if (fatigueStacks >= 10) return; // Max 10 stacks (100%)
+            const def = statusEffectDefs.fatigue;
+            if (!def || fatigueStacks >= def.maxStacks) return;
             
             fatigueStacks++;
-            fatigueTimeRemaining += 30;
+            fatigueTimeRemaining += def.duration;
             
-            // Cap total duration at 120 seconds
-            if (fatigueTimeRemaining > 120) {
-                fatigueTimeRemaining = 120;
+            // Cap total duration at max
+            if (fatigueTimeRemaining > def.maxDuration) {
+                fatigueTimeRemaining = def.maxDuration;
             }
             
-            updateFatigueDisplay();
+            updateEffectsDisplay();
             
             // Start timer if not already running
             if (!fatigueTimerInterval) {
@@ -143,7 +182,40 @@
                         fatigueStacks = 0;
                         clearInterval(fatigueTimerInterval);
                         fatigueTimerInterval = null;
-                        updateFatigueDisplay();
+                        updateEffectsDisplay();
+                    }
+                }, 1000);
+            }
+        }
+
+        function addPerfectionEffect() {
+            const def = statusEffectDefs.perfection;
+            if (!def || perfectionStacks >= def.maxStacks) return;
+            
+            perfectionStacks++;
+            perfectionTimeRemaining += def.duration;
+            
+            // Cap total duration at max
+            if (perfectionTimeRemaining > def.maxDuration) {
+                perfectionTimeRemaining = def.maxDuration;
+            }
+            
+            updateEffectsDisplay();
+            
+            // Start timer if not already running
+            if (!perfectionTimerInterval) {
+                perfectionTimerInterval = setInterval(() => {
+                    if (perfectionTimeRemaining > 0) {
+                        perfectionTimeRemaining--;
+                        const timerEl = document.getElementById('perfectionTimer');
+                        if (timerEl) {
+                            timerEl.textContent = perfectionTimeRemaining + 's';
+                        }
+                    } else {
+                        perfectionStacks = 0;
+                        clearInterval(perfectionTimerInterval);
+                        perfectionTimerInterval = null;
+                        updateEffectsDisplay();
                     }
                 }, 1000);
             }
@@ -153,18 +225,33 @@
         function getCurrentSection() {
             const leftColumn = document.querySelector('.left-column');
             const columnHeight = leftColumn.clientHeight;
-            const sectionHeight = columnHeight / 3;
+            const perfectionSection = document.querySelector('.section.perfection');
+            const perfectionHeight = perfectionSection ? perfectionSection.clientHeight : 40;
             
             // Calculate position from top (inverse of bottom)
             const positionFromTop = columnHeight - currentPosition;
             
-            if (positionFromTop < sectionHeight) {
-                return 'gains-top';
-            } else if (positionFromTop < sectionHeight * 2) {
-                return 'fatigue';
-            } else {
-                return 'gains-bottom';
+            // Calculate section boundaries
+            const sections = document.querySelectorAll('.left-column .section');
+            let cumulativeHeight = 0;
+            
+            for (let i = 0; i < sections.length; i++) {
+                const sectionHeight = sections[i].clientHeight;
+                if (positionFromTop >= cumulativeHeight && positionFromTop < cumulativeHeight + sectionHeight) {
+                    if (sections[i].classList.contains('perfection')) {
+                        return 'perfection';
+                    } else if (i === 0) {
+                        return 'gains-top';
+                    } else if (i === 2) {
+                        return 'fatigue';
+                    } else if (i === 3) {
+                        return 'gains-bottom';
+                    }
+                }
+                cumulativeHeight += sectionHeight;
             }
+            
+            return 'gains-bottom'; // Default
         }
 
         function isInGainsSection(section) {
@@ -195,7 +282,7 @@
             
             const distanceToTravel = endPos - liftStartPosition;
             const totalDistance = baseMaxHeight - 75;
-            const duration = 2000 * (distanceToTravel / totalDistance); // Scale duration to remaining distance
+            const duration = 1500 * (distanceToTravel / totalDistance); // Scale duration to remaining distance
             
             let progress = Math.min(elapsed / duration, 1);
             progress = 1 - Math.pow(1 - progress, 3); // Cubic ease-out for smooth motion
@@ -224,7 +311,7 @@
             const elapsed = timestamp - startTime;
             
             // Use ease-in cubic for smooth acceleration downward
-            const duration = 1500; // 1.5 seconds to return to bottom
+            const duration = 1125; // 1.125 seconds to return to bottom
             let progress = Math.min(elapsed / duration, 1);
             progress = Math.pow(progress, 2); // Quadratic ease-in for smooth drop
             
@@ -257,6 +344,8 @@
             const startSection = getCurrentSection();
             if (startSection === 'fatigue') {
                 addFatigueStack();
+            } else if (startSection === 'perfection') {
+                addPerfectionEffect();
             }
             
             // Add visual feedback
@@ -292,13 +381,19 @@
             const releaseSection = getCurrentSection();
             if (releaseSection === 'fatigue') {
                 addFatigueStack();
+            } else if (releaseSection === 'perfection') {
+                addPerfectionEffect();
             }
             
             // Check if we started and ended in different Gains sections
             if (isInGainsSection(liftStartSection) && 
                 isInGainsSection(releaseSection) && 
                 liftStartSection !== releaseSection) {
-                strength += 5;
+                let xpGain = 5;
+                if (perfectionStacks > 0) {
+                    xpGain = Math.floor(xpGain * (1 + (perfectionStacks * 0.25))); // 25% bonus per stack
+                }
+                strength += xpGain;
                 strengthValue.textContent = strength;
                 updateAddWeightButton();
                 
@@ -363,11 +458,17 @@
                 clearInterval(fatigueTimerInterval);
                 fatigueTimerInterval = null;
             }
-            updateFatigueDisplay();
+            perfectionTimeRemaining = 0;
+            perfectionStacks = 0;
+            if (perfectionTimerInterval) {
+                clearInterval(perfectionTimerInterval);
+                perfectionTimerInterval = null;
+            }
+            updateEffectsDisplay();
         });
 
         // Initialize display on page load
-        updateFatigueDisplay();
+        updateEffectsDisplay();
     </script>
 </body>
 </html>
