@@ -48,6 +48,17 @@ body {
     font-weight: 700;
 }
 
+.section.rest {
+    flex: 0 0 50px;
+    background: #48484a;
+    border-bottom: none;
+}
+
+.section.rest .section-title {
+    color: #8e8e93;
+    font-weight: 600;
+}
+
 .section:last-child {
     border-bottom: none;
 }
@@ -62,7 +73,7 @@ body {
 
 .dumbbell {
     position: absolute;
-    bottom: 75px;
+    bottom: 25px;
     left: 50%;
     transform: translateX(-50%);
     height: 25px;

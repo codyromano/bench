@@ -22,7 +22,7 @@
                     <div class="stat-item">
                         <div class="stat-label">XP</div>
                         <div class="stat-value" id="strengthValue">0</div>
-                        <div class="stat-hint">Tap and release the dumbbell over 'Gains' to gain XP.</div>
+                        <div class="stat-hint">Tap and release on 'Gains' to gain XP — 'Perfection' for bonus</div>
                     </div>
                     <div class="stat-item">
                         <div class="stat-label">Weight</div>
@@ -72,8 +72,8 @@
         let isLowering = false;
         let startTime = null;
         let animationFrame = null;
-        let currentPosition = 75; // Track current position
-        let liftStartPosition = 75; // Track where lift started from
+        let currentPosition = 25; // Track current position - start in rest zone
+        let liftStartPosition = 25; // Track where lift started from
         let strength = 0;
         let weight = 50;
         let liftStartSection = null;
@@ -131,6 +131,8 @@
                 
                 if (section.type === 'perfection') {
                     sectionDiv.classList.add('perfection');
+                } else if (section.type === 'rest') {
+                    sectionDiv.classList.add('rest');
                 }
                 
                 sectionDiv.setAttribute('data-type', section.type);
@@ -142,8 +144,10 @@
                     sectionDiv.style.flex = '0 0 ' + section.height + 'px';
                 }
                 
-                if (section.backgroundColor && section.type === 'perfection') {
-                    sectionDiv.style.background = section.backgroundColor;
+                if (section.backgroundColor) {
+                    if (section.type === 'perfection' || section.type === 'rest') {
+                        sectionDiv.style.background = section.backgroundColor;
+                    }
                 }
                 
                 // Add title
@@ -360,9 +364,9 @@
             let progress = Math.min(elapsed / duration, 1);
             progress = Math.pow(progress, 2); // Quadratic ease-in for smooth drop
             
-            // Move from current position back to 75px
+            // Move from current position back to 25px (rest position)
             const startPos = currentPosition;
-            const endPos = 75;
+            const endPos = 25;
             currentPosition = startPos + (endPos - startPos) * progress;
             
             dumbbell.style.bottom = `${currentPosition}px`;
@@ -371,7 +375,7 @@
                 animationFrame = requestAnimationFrame(animateLower);
             } else {
                 isLowering = false;
-                currentPosition = 75;
+                currentPosition = 25;
             }
         }
 
