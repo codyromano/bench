@@ -20,9 +20,14 @@
             <div class="right-column">
                 <div class="stats-section">
                     <div class="stat-item">
-                        <div class="stat-label">XP</div>
+                        <div class="stat-label">Reps</div>
+                        <div class="stat-value" id="repsValue">0/5</div>
+                        <div class="stat-hint">Move the dumbbell between "Gains" sections <strong>without</strong> resting.</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Experience</div>
                         <div class="stat-value" id="strengthValue">0</div>
-                        <div class="stat-hint">Tap and release on 'Gains' to gain XP — 'Perfection' for bonus</div>
+                        <div class="stat-hint">Use experience points to upgrade your lifting abilities.</div>
                     </div>
                     <div class="stat-item">
                         <div class="stat-label">Weight</div>
@@ -43,7 +48,7 @@
         <div class="button-container">
             <button class="add-weight-button" id="addWeightButton" disabled>
                 <span>Add Weight</span>
-                <span class="button-subtext">Requires 20 XP</span>
+                <span class="button-subtext" id="addWeightHint">Complete 5 reps</span>
             </button>
             <button class="lift-button" id="liftButton">
                 <span>Lift</span>
@@ -63,6 +68,8 @@
         const addWeightButton = document.getElementById('addWeightButton');
         const strengthValue = document.getElementById('strengthValue');
         const weightValue = document.getElementById('weightValue');
+        const repsValue = document.getElementById('repsValue');
+        const addWeightHint = document.getElementById('addWeightHint');
         const effectsList = document.getElementById('effectsList');
         const debugMenu = document.getElementById('debugMenu');
         const expireEffectsButton = document.getElementById('expireEffectsButton');
@@ -72,10 +79,14 @@
         let isLowering = false;
         let startTime = null;
         let animationFrame = null;
-        let currentPosition = 25; // Track current position - start in rest zone
-        let liftStartPosition = 25; // Track where lift started from
+        let currentPosition = 37; // Track current position - start just below rest zone
+        let liftStartPosition = 37; // Track where lift started from
         let strength = 0;
         let weight = 50;
+        let currentReps = 0;
+        let maxReps = 5;
+        let touchedRestThisRep = false;
+        let justEarnedRep = false;
         let liftStartSection = null;
         let fatigueStacks = 0;
         let fatigueTimeRemaining = 0;
@@ -114,6 +125,11 @@
             currentLevelNumber = levelNum;
             weight = levelData.weight;
             weightValue.textContent = weight;
+            
+            maxReps = levelData.maxReps || 5;
+            currentReps = 0;
+            updateRepsDisplay();
+            updateAddWeightButton();
             
             // Render sections
             renderSections(levelData.sections);
@@ -161,6 +177,11 @@
             
             // Re-add dumbbell at the end
             leftColumn.appendChild(dumbbellElement);
+            
+            // Initialize section highlighting after DOM updates
+            requestAnimationFrame(() => {
+                getCurrentSection();
+            });
         }
 
         function updateEffectsDisplay() {
@@ -283,15 +304,35 @@
             
             const sections = leftColumn.querySelectorAll('.section');
             let cumulativeHeight = 0;
+            let activeSectionElement = null;
             
             for (let i = 0; i < sections.length; i++) {
                 const sectionHeight = sections[i].clientHeight;
                 if (positionFromTop >= cumulativeHeight && positionFromTop < cumulativeHeight + sectionHeight) {
+                    activeSectionElement = sections[i];
                     const sectionType = sections[i].getAttribute('data-type');
+                    
+                    // Update visual indicator - remove active from all, add to current
+                    sections.forEach(s => s.classList.remove('active'));
+                    sections[i].classList.add('active');
+                    
+                    // Log when Rest section is highlighted
+                    if (sectionType === 'rest') {
+                        console.log('Rest section highlighted');
+                        // Reset reps when rest section becomes active, unless already maxed out
+                        if (currentReps > 0 && currentReps < maxReps) {
+                            currentReps = 0;
+                            updateRepsDisplay();
+                            updateAddWeightButton();
+                        }
+                    }
+                    
                     if (sectionType === 'perfection') {
                         return 'perfection';
                     } else if (sectionType === 'fatigue') {
                         return 'fatigue';
+                    } else if (sectionType === 'rest') {
+                        return 'rest';
                     } else if (sectionType === 'gains') {
                         // Differentiate between first and last gains section
                         return i === 0 ? 'gains-top' : 'gains-bottom';
@@ -307,8 +348,12 @@
             return section === 'gains-top' || section === 'gains-bottom';
         }
 
+        function updateRepsDisplay() {
+            repsValue.textContent = `${currentReps}/${maxReps}`;
+        }
+
         function updateAddWeightButton() {
-            if (strength >= 20) {
+            if (currentReps >= maxReps) {
                 addWeightButton.disabled = false;
             } else {
                 addWeightButton.disabled = true;
@@ -339,7 +384,13 @@
             // Move from lift start position to max allowed position
             currentPosition = liftStartPosition + (endPos - liftStartPosition) * progress;
             
+            // Clamp to never exceed the maximum allowed position (prevents rapid tap exploit)
+            currentPosition = Math.min(currentPosition, endPos);
+            
             dumbbell.style.bottom = `${currentPosition}px`;
+            
+            // Update section highlighting in realtime
+            getCurrentSection();
             
             if (progress < 1) {
                 animationFrame = requestAnimationFrame(animateLift);
@@ -364,18 +415,23 @@
             let progress = Math.min(elapsed / duration, 1);
             progress = Math.pow(progress, 2); // Quadratic ease-in for smooth drop
             
-            // Move from current position back to 25px (rest position)
+            // Move from current position back to 37px (just below rest position)
             const startPos = currentPosition;
-            const endPos = 25;
+            const endPos = 37;
             currentPosition = startPos + (endPos - startPos) * progress;
             
             dumbbell.style.bottom = `${currentPosition}px`;
+            
+            // Update section highlighting in realtime during drop
+            getCurrentSection();
             
             if (progress < 1) {
                 animationFrame = requestAnimationFrame(animateLower);
             } else {
                 isLowering = false;
-                currentPosition = 25;
+                currentPosition = 37;
+                touchedRestThisRep = false;
+                justEarnedRep = false; // Clear the flag for next lift
             }
         }
 
@@ -389,12 +445,17 @@
                 autoDropTimer = null;
             }
             
+            // Reset touched rest flag at start of each lift
+            touchedRestThisRep = false;
+            
             // Check if starting in Fatigue section
             const startSection = getCurrentSection();
             if (startSection === 'fatigue') {
                 addFatigueStack();
             } else if (startSection === 'perfection') {
                 addPerfectionEffect();
+            } else if (startSection === 'rest') {
+                touchedRestThisRep = true;
             }
             
             // Add visual feedback
@@ -432,18 +493,29 @@
                 addFatigueStack();
             } else if (releaseSection === 'perfection') {
                 addPerfectionEffect();
+            } else if (releaseSection === 'rest') {
+                touchedRestThisRep = true;
             }
             
             // Check if we started and ended in different Gains sections
-            if (isInGainsSection(liftStartSection) && 
+            const earnedRep = isInGainsSection(liftStartSection) && 
                 isInGainsSection(releaseSection) && 
-                liftStartSection !== releaseSection) {
+                liftStartSection !== releaseSection &&
+                !touchedRestThisRep; // Can't earn rep if touched rest
+            
+            justEarnedRep = earnedRep; // Track for rest reset logic
+            
+            if (earnedRep && currentReps < maxReps) {
                 let xpGain = currentLevel ? currentLevel.baseXP : 5;
                 if (perfectionStacks > 0) {
                     xpGain = Math.floor(xpGain * (1 + (perfectionStacks * 0.25))); // 25% bonus per stack
                 }
                 strength += xpGain;
                 strengthValue.textContent = strength;
+                
+                // Count rep
+                currentReps++;
+                updateRepsDisplay();
                 updateAddWeightButton();
                 
                 // Add success feedback
@@ -452,6 +524,9 @@
                     liftButton.classList.remove('success');
                 }, 400);
             }
+            
+            // Reset rest touch flag for next rep
+            touchedRestThisRep = false;
             
             // Start lowering from current position
             isLifting = false;

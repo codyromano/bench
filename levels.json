@@ -4,18 +4,13 @@
       "levelNumber": 1,
       "weight": 50,
       "baseXP": 5,
+      "maxReps": 5,
       "sections": [
         {
           "type": "gains",
           "label": "Gains",
           "flex": 1,
           "backgroundColor": "#1c1c1e"
-        },
-        {
-          "type": "perfection",
-          "label": "Perfection",
-          "height": 40,
-          "backgroundColor": "linear-gradient(to bottom, #ffd700, #b8860b)"
         },
         {
           "type": "fatigue",
@@ -33,7 +28,7 @@
           "type": "rest",
           "label": "Rest",
           "height": 50,
-          "backgroundColor": "#48484a"
+          "backgroundColor": "#1c1c1e"
         }
       ],
       "movement": {
@@ -70,6 +65,7 @@
       "levelNumber": 2,
       "weight": 75,
       "baseXP": 7,
+      "maxReps": 8,
       "sections": [
         {
           "type": "gains",
@@ -105,7 +101,7 @@
           "type": "rest",
           "label": "Rest",
           "height": 50,
-          "backgroundColor": "#48484a"
+          "backgroundColor": "#1c1c1e"
         }
       ],
       "movement": {
@@ -148,6 +144,7 @@
       "levelNumber": 3,
       "weight": 100,
       "baseXP": 10,
+      "maxReps": 10,
       "sections": [
         {
           "type": "gains",
@@ -189,7 +186,7 @@
           "type": "rest",
           "label": "Rest",
           "height": 50,
-          "backgroundColor": "#48484a"
+          "backgroundColor": "#1c1c1e"
         }
       ],
       "movement": {
