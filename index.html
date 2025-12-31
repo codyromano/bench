@@ -20,19 +20,19 @@
             <div class="right-column">
                 <div class="stats-section">
                     <div class="stat-item">
+                        <div class="stat-label">Weight</div>
+                        <div class="stat-value" id="weightValue">50/500</div>
+                        <div class="stat-hint">Do you have what it takes to bench press 500 lbs?</div>
+                    </div>
+                    <div class="stat-item">
                         <div class="stat-label">Reps</div>
                         <div class="stat-value" id="repsValue">0/5</div>
                         <div class="stat-hint">Move the dumbbell between "Gains" sections <strong>without</strong> resting.</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-label">Experience</div>
+                        <div class="stat-label">XP</div>
                         <div class="stat-value" id="strengthValue">0</div>
                         <div class="stat-hint">Use experience points to upgrade your lifting abilities.</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">Weight</div>
-                        <div class="stat-value" id="weightValue">50</div>
-                        <div class="stat-hint">Increase your XP to lift more weight and earn rewards.</div>
                     </div>
                 </div>
 
@@ -46,14 +46,18 @@
         </div>
         
         <div class="button-container">
-            <button class="add-weight-button" id="addWeightButton" disabled>
-                <span>Add Weight</span>
-                <span class="button-subtext" id="addWeightHint">Complete 5 reps</span>
-            </button>
             <button class="lift-button" id="liftButton">
                 <span>Lift</span>
                 <span class="button-subtext">Tap and hold</span>
             </button>
+        </div>
+    </div>
+
+    <div class="level-complete-overlay" id="levelCompleteOverlay">
+        <div class="level-complete-content">
+            <div class="level-complete-title">Level Complete!</div>
+            <div class="level-complete-message" id="levelCompleteMessage">You've unlocked Level 2</div>
+            <button class="level-complete-button" id="continueButton">Continue</button>
         </div>
     </div>
 
@@ -65,15 +69,16 @@
     <script>
         const dumbbell = document.querySelector('.dumbbell');
         const liftButton = document.getElementById('liftButton');
-        const addWeightButton = document.getElementById('addWeightButton');
         const strengthValue = document.getElementById('strengthValue');
         const weightValue = document.getElementById('weightValue');
         const repsValue = document.getElementById('repsValue');
-        const addWeightHint = document.getElementById('addWeightHint');
         const effectsList = document.getElementById('effectsList');
         const debugMenu = document.getElementById('debugMenu');
         const expireEffectsButton = document.getElementById('expireEffectsButton');
         const leftColumn = document.getElementById('leftColumn');
+        const levelCompleteOverlay = document.getElementById('levelCompleteOverlay');
+        const levelCompleteMessage = document.getElementById('levelCompleteMessage');
+        const continueButton = document.getElementById('continueButton');
         
         let isLifting = false;
         let isLowering = false;
@@ -99,6 +104,9 @@
         let levelsConfig = null;
         let currentLevel = null;
         let currentLevelNumber = 1;
+        let currentHighlightedSection = null;
+        let sectionOriginalTitles = new Map(); // Store original titles
+        let highlightSequenceIndex = 0; // Track position in highlight sequence
         
         // Debug menu state
         const debugSequence = ['ArrowUp', 'ArrowDown', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
@@ -124,12 +132,14 @@
             currentLevel = levelData;
             currentLevelNumber = levelNum;
             weight = levelData.weight;
-            weightValue.textContent = weight;
+            weightValue.textContent = weight + '/500';
+            
+            // Reset highlight sequence
+            highlightSequenceIndex = 0;
             
             maxReps = levelData.maxReps || 5;
             currentReps = 0;
             updateRepsDisplay();
-            updateAddWeightButton();
             
             // Render sections
             renderSections(levelData.sections);
@@ -171,6 +181,19 @@
                 titleDiv.className = 'section-title';
                 titleDiv.textContent = section.label;
                 sectionDiv.appendChild(titleDiv);
+                
+                // Store original title for later restoration
+                sectionOriginalTitles.set(sectionDiv, section.label);
+                
+                // Add click handler for gains sections
+                if (section.type === 'gains') {
+                    sectionDiv.addEventListener('click', () => {
+                        // Only respond if this section is currently highlighted
+                        if (sectionDiv.classList.contains('highlighted')) {
+                            highlightRandomGainsSection(sectionDiv);
+                        }
+                    });
+                }
                 
                 leftColumn.appendChild(sectionDiv);
             });
@@ -316,14 +339,11 @@
                     sections.forEach(s => s.classList.remove('active'));
                     sections[i].classList.add('active');
                     
-                    // Log when Rest section is highlighted
+                    // Reset reps when rest section becomes active, unless already maxed out
                     if (sectionType === 'rest') {
-                        console.log('Rest section highlighted');
-                        // Reset reps when rest section becomes active, unless already maxed out
                         if (currentReps > 0 && currentReps < maxReps) {
                             currentReps = 0;
                             updateRepsDisplay();
-                            updateAddWeightButton();
                         }
                     }
                     
@@ -348,16 +368,97 @@
             return section === 'gains-top' || section === 'gains-bottom';
         }
 
+        function getGainsSections() {
+            const sections = leftColumn.querySelectorAll('.section');
+            const gainsSections = [];
+            sections.forEach(section => {
+                const type = section.getAttribute('data-type');
+                if (type === 'gains') {
+                    gainsSections.push(section);
+                }
+            });
+            return gainsSections;
+        }
+
+        function highlightRandomGainsSection(excludeSection = null) {
+            // Remove any existing highlights
+            clearGainsHighlights();
+            
+            const gainsSections = getGainsSections();
+            if (gainsSections.length === 0) return;
+            
+            // Use sequence from level config if available
+            if (currentLevel && currentLevel.highlightSequence) {
+                const sequence = currentLevel.highlightSequence;
+                const sectionIndex = sequence[highlightSequenceIndex % sequence.length];
+                
+                // Move to next in sequence
+                highlightSequenceIndex++;
+                
+                // Get the section at this index
+                if (sectionIndex < gainsSections.length) {
+                    const selectedSection = gainsSections[sectionIndex];
+                    
+                    // Highlight it
+                    selectedSection.classList.add('highlighted');
+                    const titleElement = selectedSection.querySelector('.section-title');
+                    if (titleElement && sectionOriginalTitles.has(selectedSection)) {
+                        titleElement.textContent = '→ ' + sectionOriginalTitles.get(selectedSection);
+                    }
+                    currentHighlightedSection = selectedSection;
+                    
+                    return selectedSection;
+                }
+            }
+            
+            // Fallback to old random behavior if no sequence defined
+            let availableSections = gainsSections;
+            if (excludeSection && gainsSections.length > 1) {
+                availableSections = gainsSections.filter(s => s !== excludeSection);
+            }
+            
+            const randomIndex = Math.floor(Math.random() * availableSections.length);
+            const selectedSection = availableSections[randomIndex];
+            
+            selectedSection.classList.add('highlighted');
+            const titleElement = selectedSection.querySelector('.section-title');
+            if (titleElement && sectionOriginalTitles.has(selectedSection)) {
+                titleElement.textContent = '→ ' + sectionOriginalTitles.get(selectedSection);
+            }
+            currentHighlightedSection = selectedSection;
+            
+            return selectedSection;
+        }
+
+        function clearGainsHighlights() {
+            const gainsSections = getGainsSections();
+            gainsSections.forEach(section => {
+                section.classList.remove('highlighted');
+                // Restore original title text
+                const titleElement = section.querySelector('.section-title');
+                if (titleElement && sectionOriginalTitles.has(section)) {
+                    titleElement.textContent = sectionOriginalTitles.get(section);
+                }
+            });
+            currentHighlightedSection = null;
+        }
+
         function updateRepsDisplay() {
             repsValue.textContent = `${currentReps}/${maxReps}`;
         }
 
-        function updateAddWeightButton() {
-            if (currentReps >= maxReps) {
-                addWeightButton.disabled = false;
+        function showLevelComplete() {
+            const nextLevel = currentLevelNumber + 1;
+            const nextLevelData = levelsConfig.levels.find(l => l.levelNumber === nextLevel);
+            
+            if (nextLevelData) {
+                levelCompleteMessage.textContent = `Weight increased to ${nextLevelData.weight} lbs`;
             } else {
-                addWeightButton.disabled = true;
+                levelCompleteMessage.textContent = `You've completed all levels!`;
             }
+            
+            // Fade in overlay
+            levelCompleteOverlay.classList.add('visible');
         }
 
         function animateLift(timestamp) {
@@ -432,6 +533,9 @@
                 currentPosition = 37;
                 touchedRestThisRep = false;
                 justEarnedRep = false; // Clear the flag for next lift
+                
+                // Clear highlights when dumbbell returns to rest
+                clearGainsHighlights();
             }
         }
 
@@ -465,6 +569,9 @@
             // Record which section we're starting in
             liftStartSection = startSection;
             
+            // Highlight a gains section when starting lift
+            highlightRandomGainsSection(currentHighlightedSection);
+            
             // Start lifting from current position
             isLifting = true;
             isLowering = false;
@@ -486,6 +593,9 @@
             // Remove lifting state
             liftButton.classList.remove('lifting');
             dumbbell.classList.remove('shaking');
+            
+            // Highlight a different gains section when releasing
+            highlightRandomGainsSection(currentHighlightedSection);
             
             // Check if we released in Fatigue section
             const releaseSection = getCurrentSection();
@@ -513,10 +623,22 @@
                 strength += xpGain;
                 strengthValue.textContent = strength;
                 
+                // Add XP gain animation
+                strengthValue.classList.add('xp-gain');
+                setTimeout(() => {
+                    strengthValue.classList.remove('xp-gain');
+                }, 500);
+                
                 // Count rep
                 currentReps++;
                 updateRepsDisplay();
-                updateAddWeightButton();
+                
+                // Check if level complete
+                if (currentReps >= maxReps) {
+                    setTimeout(() => {
+                        showLevelComplete();
+                    }, 800); // Delay to let XP animation finish
+                }
                 
                 // Add success feedback
                 liftButton.classList.add('success');
@@ -539,7 +661,23 @@
         // Mouse events
         liftButton.addEventListener('mousedown', startLift);
         liftButton.addEventListener('mouseup', stopLift);
-        liftButton.addEventListener('mouseleave', stopLift);
+        liftButton.addEventListener('mouseleave', () => {
+            // Only stop if actually lifting to handle drag-off case
+            // but don't change highlights for mouseleave
+            if (isLifting) {
+                if (animationFrame) cancelAnimationFrame(animationFrame);
+                if (autoDropTimer) {
+                    clearTimeout(autoDropTimer);
+                    autoDropTimer = null;
+                }
+                liftButton.classList.remove('lifting');
+                dumbbell.classList.remove('shaking');
+                isLifting = false;
+                isLowering = true;
+                startTime = null;
+                animationFrame = requestAnimationFrame(animateLower);
+            }
+        });
 
         // Touch events
         liftButton.addEventListener('touchstart', (e) => {
@@ -589,6 +727,20 @@
                 perfectionTimerInterval = null;
             }
             updateEffectsDisplay();
+        });
+
+        // Continue button handler
+        continueButton.addEventListener('click', () => {
+            levelCompleteOverlay.classList.remove('visible');
+            const nextLevel = currentLevelNumber + 1;
+            const nextLevelData = levelsConfig.levels.find(l => l.levelNumber === nextLevel);
+            
+            if (nextLevelData) {
+                loadLevel(nextLevel);
+            } else {
+                // No more levels, restart from level 1 or show completion
+                loadLevel(1);
+            }
         });
 
         // Initialize display on page load

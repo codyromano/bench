@@ -5,6 +5,7 @@
       "weight": 50,
       "baseXP": 5,
       "maxReps": 5,
+      "highlightSequence": [0, 1],
       "sections": [
         {
           "type": "gains",
